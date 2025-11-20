@@ -13,8 +13,8 @@ from openpyxl.utils import get_column_letter
 class ExcelProcessorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Procesador de Catálogos Excel")
-        self.root.geometry("900x700")
+        self.root.title("Procesador de Catálogos Excel By Leo")
+        self.root.geometry("700x700")
         
         self.df = None
         self.lineas_fijas = [1, 2, 8, 31, 32]
@@ -112,7 +112,7 @@ class ExcelProcessorApp:
             try:
                 columnas_a_texto = {'Codigo': str}
                 # Modificación: Saltar las primeras 11 filas (1 a 11) y tomar la fila 12 (índice 11) como encabezado
-                self.df = pd.read_excel(file_path, header=11, dtype=columnas_a_texto)
+                self.df = pd.read_excel(file_path, header=11, dtype=columnas_a_texto, sheet_name='principal')
                 
                 self.log(f"Archivo cargado: {os.path.basename(file_path)}")
                 self.log(f"Filas cargadas (después de saltar el inicio): {len(self.df)}")
@@ -178,10 +178,17 @@ class ExcelProcessorApp:
             df_filtrado['orden'] = range(1, len(df_filtrado) + 1)
             self.log(f"Orden renumerado del 1 al {len(df_filtrado)}")
             
-            # Paso 6: Aplicar regla del múltiplo de 8
+            # Paso 6: ELIMINAR DUPLICADOS por 'Codigo' (mantener el primer registro)
+            if 'Codigo' in df_filtrado.columns:
+                filas_originales = len(df_filtrado)
+                df_filtrado = df_filtrado.drop_duplicates(subset=['Codigo'], keep='first').copy()
+                filas_eliminadas = filas_originales - len(df_filtrado)
+                self.log(f"Duplicados eliminados: {filas_eliminadas} filas (basado en 'Codigo')")
+            
+            # Paso 7: Aplicar regla del múltiplo de 8
             df_final = self.aplicar_multiplo_8(df_filtrado)
             
-            # Paso 7: Exportar a Excel con formato
+            # Paso 8: Exportar a Excel con formato
             self.exportar_excel_con_formato(df_final, zona)
             
             messagebox.showinfo("Éxito", "Archivo procesado y exportado correctamente a Excel")
@@ -381,6 +388,7 @@ class ExcelProcessorApp:
                 ws['A3'] = f"Zona: {zona}"
                 ws['A4'] = f"Líneas procesadas: {[linea for linea in self.lineas_fijas if self.check_vars[linea].get()]}"
                 ws['A5'] = f"Total productos: {len(df)}"
+                
                 
                 # Agregar datos (Empieza en Fila 6, Header en Fila 6, Datos en Fila 7)
                 for r_idx, r in enumerate(dataframe_to_rows(df_export, index=False, header=True)):
